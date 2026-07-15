@@ -5,7 +5,12 @@ Usage:
     python run_backtest.py /path/to/repo [--commits 300] [--hops 2] [--min-cochange 2]
 
 Produces the Stage 1 deliverable described in the whitepaper (Section 4/6):
-a backtest report against the repo's own historical merge data.
+a backtest report against the repo's own historical merge data, including a
+per-repo calibrated confidence table (Section 5.3/6). The replayed commits
+are split chronologically 70/30: the calibrator is FIT only on the earliest
+70%, and both the raw and calibrated calibration tables are computed only on
+the held-out, most recent 30% -- see ahal/backtest.py and ahal/calibration.py
+for why grading the calibrator on its own fit data would be leaky/optimistic.
 """
 import argparse
 from pathlib import Path
