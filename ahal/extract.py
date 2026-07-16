@@ -19,9 +19,13 @@ from .ground_truth import CoChangeIndex, StructuralGraph
 
 
 def _git(repo: Path, *args: str) -> str:
+    # stdin=DEVNULL: git never reads stdin here; explicitly closing it avoids
+    # inheriting a possibly-invalidated parent stdin handle (observed on
+    # Windows after other in-process async work, e.g. a FastAPI TestClient's
+    # lifecycle -- "WinError 6: the handle is invalid").
     out = subprocess.run(
         ["git", "-C", str(repo), *args],
-        capture_output=True, text=True, check=True,
+        capture_output=True, text=True, check=True, stdin=subprocess.DEVNULL,
     )
     return out.stdout
 
