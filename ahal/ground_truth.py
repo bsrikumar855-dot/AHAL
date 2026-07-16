@@ -56,6 +56,23 @@ class StructuralGraph:
         except (nx.NetworkXNoPath, nx.NodeNotFound):
             return None
 
+    def to_edges(self) -> list[tuple[str, str]]:
+        """Serialize to a list of (source, target) edges.
+
+        Gives callers outside this module (e.g. a persistence layer) a
+        public, stable way to snapshot the graph without reaching into the
+        private `_g` attribute.
+        """
+        return list(self._g.edges())
+
+    @classmethod
+    def from_edges(cls, edges: Iterable[tuple[str, str]]) -> "StructuralGraph":
+        """Reconstruct a graph from a previously serialized edge list."""
+        g = cls()
+        for source, target in edges:
+            g.add_dependency(source, target)
+        return g
+
 
 class CoChangeIndex:
     """Counts how often two components appeared in the same commit.
@@ -85,3 +102,26 @@ class CoChangeIndex:
     @property
     def total_commits(self) -> int:
         return self._commit_count
+
+    def to_pairs(self) -> list[tuple[str, str, int]]:
+        """Serialize to a list of (a, b, count) triples.
+
+        Public, stable snapshot format for a persistence layer, so callers
+        don't need to reach into the private `_pair_counts` dict.
+        """
+        return [(*sorted(pair), count) for pair, count in self._pair_counts.items()]
+
+    @classmethod
+    def from_pairs(cls, pairs: Iterable[tuple[str, str, int]],
+                   commit_count: int = 0) -> "CoChangeIndex":
+        """Reconstruct an index from a previously serialized pair list.
+
+        `commit_count` restores `total_commits` for display purposes only;
+        `cochange_count` reads exclusively from the pair counts, not from
+        `commit_count`.
+        """
+        idx = cls()
+        for a, b, count in pairs:
+            idx._pair_counts[frozenset((a, b))] = count
+        idx._commit_count = commit_count
+        return idx

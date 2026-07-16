@@ -140,10 +140,11 @@ class BacktestReport:
 
 
 def _load_commits(repo: Path, n: int, max_files: int) -> list[CommitRecord]:
+    # stdin=DEVNULL: see ahal/extract.py's _git() for why.
     out = subprocess.run(
         ["git", "-C", str(repo), "log", f"-n{n}", "--name-only",
          "--pretty=format:__C__%H", "--reverse"],
-        capture_output=True, text=True, check=True,
+        capture_output=True, text=True, check=True, stdin=subprocess.DEVNULL,
     ).stdout
     commits: list[CommitRecord] = []
     sha, files = None, []
