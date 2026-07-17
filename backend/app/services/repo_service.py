@@ -37,12 +37,18 @@ def connect_repo(*, url: str, session: Session, session_factory: sessionmaker,
     def _run() -> None:
         worker_session = session_factory()
         try:
+            from backend.app.graph.postgres_graph_repository import PostgresGraphRepository
+            actual_graph_repo = graph_repo
+            if isinstance(graph_repo, PostgresGraphRepository):
+                actual_graph_repo = PostgresGraphRepository(worker_session)
+
             run_index_job(
                 repo_id=repo.id, job_id=job.id, url=url,
-                session=worker_session, graph_repo=graph_repo, settings=settings,
+                session=worker_session, graph_repo=actual_graph_repo, settings=settings,
             )
         finally:
             worker_session.close()
+
 
     job_queue.enqueue(job.id, _run)
     return repo, job

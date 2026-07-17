@@ -82,3 +82,16 @@ class IndexJob(Base):
     commits_processed: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     repo: Mapped["Repo"] = relationship(back_populates="jobs")
+
+
+class GraphSnapshot(Base):
+    """Stores structural graph edges, co-change pairs, and calibrator fit pairs in the database."""
+
+    __tablename__ = "graph_snapshots"
+
+    repo_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    edges: Mapped[str] = mapped_column(Text, nullable=False)
+    cochange_pairs: Mapped[str] = mapped_column(Text, nullable=False)
+    commit_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    calibration_fit_pairs: Mapped[str | None] = mapped_column(Text, nullable=True)
+

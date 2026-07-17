@@ -46,3 +46,13 @@ class IndexJobRead(BaseModel):
 class RepoCreateResponse(BaseModel):
     repo: RepoRead
     job: IndexJobRead
+
+
+class PredictionItem(BaseModel):
+    target: str
+    score: float
+    basis: str
+    calibrated_score: float | None = None
+
+    model_config = {"from_attributes": True}
+

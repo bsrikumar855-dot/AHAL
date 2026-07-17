@@ -7,10 +7,14 @@ monkeypatching module state (see backend/tests/conftest.py).
 """
 from __future__ import annotations
 
+from fastapi import Depends
+from sqlalchemy.orm import Session
+
 from backend.app.config import Settings, settings
-from backend.app.db.session import get_session_factory  # noqa: F401 -- re-exported for routes
+from backend.app.db.session import get_db, get_session_factory  # noqa: F401 -- re-exported for routes
 from backend.app.graph.graph_repository import GraphRepository
 from backend.app.graph.networkx_graph_repository import NetworkXGraphRepository
+from backend.app.graph.postgres_graph_repository import PostgresGraphRepository
 from backend.app.jobs.in_process_job_queue import InProcessJobQueue
 from backend.app.jobs.job_queue import JobQueue
 
@@ -22,8 +26,11 @@ def get_settings_dep() -> Settings:
     return settings
 
 
-def get_graph_repository() -> GraphRepository:
+def get_graph_repository(session: Session = Depends(get_db)) -> GraphRepository:
+    if settings.database_url.startswith("postgresql") or settings.database_url.startswith("postgres"):
+        return PostgresGraphRepository(session)
     return _graph_repo
+
 
 
 def get_job_queue() -> JobQueue:

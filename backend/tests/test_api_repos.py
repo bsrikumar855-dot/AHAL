@@ -54,3 +54,29 @@ def test_list_repos_returns_connected_repos(api_client, fixture_repo):
 
     assert resp.status_code == 200
     assert len(resp.json()) == 1
+
+
+def test_get_validation_report(api_client):
+    resp = api_client.get("/api/v1/repos/validation/report")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "repos" in data
+    assert len(data["repos"]) == 5
+    
+    # Verify AHAL entry
+    ahal = next(r for r in data["repos"] if r["name"] == "AHAL (local)")
+    assert ahal["gating_cleared"] is False
+    assert ahal["precision"] == 0.0
+    assert ahal["recall"] == 0.0
+    
+    # Verify Django entry
+    django = next(r for r in data["repos"] if r["name"] == "Django")
+    assert django["gating_cleared"] is False
+    assert django["precision"] == 0.208
+    assert django["recall"] == 0.041
+    
+    # Verify Click entry (cleared gating)
+    click = next(r for r in data["repos"] if r["name"] == "Pallets Click")
+    assert click["gating_cleared"] is True
+    assert len(click["calibration_curve"]) == 5
+

@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from ahal.calibration import Calibrator
 from ahal.ground_truth import CoChangeIndex, StructuralGraph
 
 from backend.app.graph.graph_repository import GraphSummary
@@ -51,6 +52,18 @@ class NetworkXGraphRepository:
         graph, cochange = snapshot
         return self._summarize(graph.to_edges(), cochange.total_commits)
 
+    def save_calibrator(self, repo_id: str, fit_pairs: list[tuple[float, bool]]) -> None:
+        path = self._store_dir / f"{repo_id}_calibrator.json"
+        path.write_text(json.dumps(fit_pairs), encoding="utf-8")
+
+    def load_calibrator(self, repo_id: str) -> Calibrator | None:
+        path = self._store_dir / f"{repo_id}_calibrator.json"
+        if not path.exists():
+            return None
+        fit_pairs = json.loads(path.read_text(encoding="utf-8"))
+        pairs = [(float(p[0]), bool(p[1])) for p in fit_pairs]
+        return Calibrator().fit(pairs)
+
     def _summarize(self, edges: list[tuple[str, str]], commit_count: int) -> GraphSummary:
         nodes = {node for edge in edges for node in edge}
         return GraphSummary(
@@ -58,3 +71,4 @@ class NetworkXGraphRepository:
 
     def _path_for(self, repo_id: str) -> Path:
         return self._store_dir / f"{repo_id}.json"
+
