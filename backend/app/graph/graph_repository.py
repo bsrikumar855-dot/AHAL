@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
+from ahal.calibration import Calibrator
 from ahal.ground_truth import CoChangeIndex, StructuralGraph
 
 
@@ -35,3 +36,12 @@ class GraphRepository(Protocol):
         """Node/edge/commit counts for a saved snapshot, without requiring
         the caller to reconstruct the full graph."""
         ...
+
+    def save_calibrator(self, repo_id: str, fit_pairs: list[tuple[float, bool]]) -> None:
+        """Persist calibration fit pairs for a repo."""
+        ...
+
+    def load_calibrator(self, repo_id: str) -> Calibrator | None:
+        """Load and reconstruct a Calibrator for a repo, if fit."""
+        ...
+

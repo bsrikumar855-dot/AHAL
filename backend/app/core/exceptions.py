@@ -21,3 +21,16 @@ class IndexJobNotFoundError(DomainError):
     def __init__(self, job_id: str) -> None:
         super().__init__(f"index job not found: {job_id}")
         self.job_id = job_id
+
+
+class RepoNotIndexedError(DomainError):
+    def __init__(self, repo_id: str) -> None:
+        super().__init__(f"repo not indexed: {repo_id}")
+        self.repo_id = repo_id
+
+
+class RepoIndexingInProgressError(DomainError):
+    def __init__(self, repo_id: str) -> None:
+        super().__init__(f"indexing still in progress: {repo_id}")
+        self.repo_id = repo_id
+

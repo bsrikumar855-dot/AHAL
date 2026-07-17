@@ -35,5 +35,12 @@ class Settings(BaseSettings):
     # indexing jobs can run concurrently before later ones queue.
     index_worker_threads: int = 2
 
+    # GitHub Webhook and Integration settings
+    github_webhook_secret: str = "change-me"
+    github_token: str | None = None
+    github_comment_min_calibrated_score: float = 0.5
+    github_comment_max_predictions: int = 5
+
+
 
 settings = Settings()

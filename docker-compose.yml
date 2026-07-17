@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - AHAL_DATABASE_URL=postgresql://ahal:ahalpass@db:5432/ahal_db
+      - AHAL_GITHUB_WEBHOOK_SECRET=my-webhook-secret
+      - AHAL_GITHUB_COMMENT_MIN_CALIBRATED_SCORE=0.5
+      - AHAL_GITHUB_COMMENT_MAX_PREDICTIONS=5
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - backend-data:/app/backend/data
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=ahal
+      - POSTGRES_PASSWORD=ahalpass
+      - POSTGRES_DB=ahal_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ahal -d ahal_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  backend-data:
+  pg-data:

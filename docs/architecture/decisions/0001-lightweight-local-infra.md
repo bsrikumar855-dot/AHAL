@@ -22,43 +22,23 @@ now we'll continue this at end") rather than block on it.
 
 Increment 1 uses:
 
-| Required (brief) | Increment 1 stand-in | Interface it sits behind |
-|---|---|---|
-| Postgres | SQLite (`backend/data/ahal_backend.db`) | SQLAlchemy session factory (`db/base.py`) |
-| Redis + Celery | In-process `ThreadPoolExecutor` | `JobQueue` (`jobs/job_queue.py`) |
-| Neo4j | One JSON file per repo (`backend/data/graphs/`) | `GraphRepository` (`graph/graph_repository.py`) |
+| Required (brief) | Deployment / Real implementation | SQLite / Local stand-in | Interface it sits behind |
+|---|---|---|---|
+| Postgres (DB Metadata) | PostgreSQL (ORM models, connection dynamically configured via `AHAL_DATABASE_URL`) | SQLite (`backend/data/ahal_backend.db`) | SQLAlchemy session factory (`db/base.py`) |
+| Postgres (Graph Storage) | PostgreSQL (`postgres_graph_repository.py` storing json-serialized payloads in `graph_snapshots` table) | One JSON file per repo (`backend/data/graphs/`) | `GraphRepository` (`graph/graph_repository.py`) |
+| Redis + Celery | In-process `ThreadPoolExecutor` | In-process `ThreadPoolExecutor` | `JobQueue` (`jobs/job_queue.py`) |
+| Neo4j (Graph Querying) | *Deferred* (Uses Python in-memory NetworkX graph processing for prediction/verification) | *Deferred* (Uses Python in-memory NetworkX graph processing for prediction/verification) | `GraphRepository` / `Predictor` |
 
-Every stand-in is a complete implementation of the interface its real
-counterpart will also implement — nothing in `services/` or `api/` imports
-SQLite, `ThreadPoolExecutor`, or JSON-on-disk directly.
+Every implementation of `GraphRepository` sits behind the same interface—nothing in `services/` or `api/` imports specific repositories directly.
 
 ## Consequences
 
-- **Positive:** Increment 1 runs and is fully testable with zero extra
-  installs (`pip install -r backend/requirements.txt`, no Docker, no
-  external services). The whole vertical slice — connect a repo, index it,
-  query status — is provably working today.
-- **Positive:** swapping any one piece later is additive: implement
-  `Neo4jGraphRepository`/`CeleryJobQueue`, point `AHAL_DATABASE_URL` at
-  Postgres, wire the new implementation into `api/v1/deps.py`. No changes
-  to `services/`, `api/v1/repos.py`, or `ahal/`.
-- **Negative:** SQLite doesn't preserve `tzinfo` on `DateTime` columns the
-  way Postgres would (see `backend/tests/test_repo_repository.py`'s
-  timestamp comparison) — a known, narrow limitation of this stand-in, not
-  a design choice to carry forward.
-- **Negative:** the in-process job queue does not survive a process
-  restart (an in-flight indexing job is simply lost) and doesn't scale
-  beyond one backend process. Acceptable for a single-developer increment;
-  not acceptable once there's more than one backend instance or a
-  customer-facing SLA.
-- **Negative:** one JSON file per repo has no query capability beyond
-  "load the whole snapshot" — fine for Increment 1 (which only reports
-  node/edge/commit counts), insufficient once Increment 2 needs to query
-  the graph directly from the API (e.g. "what does X depend on") without
-  reconstructing it in Python first.
+- **Positive:** Swapping SQLite for Postgres and JSON-files for database snapshot storage was achieved without changing the service orchestrator layer or the `ahal` engine boundary, proving the interface decoupling is sound.
+- **Positive:** The system can be configured entirely via `AHAL_DATABASE_URL` to run locally with SQLite or deployed fully on Postgres (using the same ORM definitions).
+- **Negative:** The in-process job queue does not survive a process restart (an in-flight indexing job is simply lost) and doesn't scale beyond one backend process. This remains an acceptable limitation for local running/development, flagged for future Celery transition.
+- **Negative:** Full Neo4j graph queries are still deferred; graph snapshots are loaded in full from the database to instantiate memory graphs in Python.
 
 ## Revisit when
 
-Docker (or equivalent hosted Postgres/Redis/Neo4j) becomes available —
-tracked as an open item in `../../roadmap.md`, not implicitly assumed to
-happen "eventually."
+Docker full-stack environment or live cloud infrastructure becomes available—this ADR has been updated to reflect the transition of Postgres to real deployment status, leaving Redis/Celery/Neo4j as next-phase items.
+
